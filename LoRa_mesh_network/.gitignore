@@ -1,0 +1,70 @@
+# -------------------------------------------------------------------
+# ESP-IDF project .gitignore
+# -------------------------------------------------------------------
+
+# Build and output directories
+build/
+sdkconfig
+sdkconfig.old
+sdkconfig.ci
+sdkconfig.defaults
+dependencies.lock
+managed_components/
+idf.env
+
+*/build/
+*/sdkconfig
+*/sdkconfig.old
+*/sdkconfig.ci
+*/sdkconfig.defaults
+*/dependencies.lock
+*/managed_components/
+*/idf.env
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# CMake and Ninja build artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.cmake
+*.ninja
+*.a
+*.o
+*.obj
+*.elf
+*.bin
+*.map
+*.log
+
+# GDB, debugging, and temporary files
+*.gdbinit
+*.pyc
+__pycache__/
+*.swp
+*.swo
+
+# Editor/IDE metadata
+.vscode/
+.idea/
+*.code-workspace
+
+# macOS / Windows / Linux cruft
+.DS_Store
+.AppleDouble
+.LSOverride
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+Thumbs.db
+$RECYCLE.BIN/
+
+# Security or keys (if any)
+*.pem
+*.key
+*.crt
+

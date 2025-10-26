@@ -1,0 +1,44 @@
+
+/ {
+    zephyr,user { //special node for user app
+		adf4351_le_gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>; //define arbitrary configs just for this app
+        adf4351_ld_gpios = <&gpio0 26 GPIO_PULL_DOWN>;
+	};
+    
+    aliases {
+        adf4351spi = &spi0; //alias for spi0
+        
+        sweepled   = &led1;
+
+        startsweep = &button0;
+    };
+
+};
+
+
+// ****** SPI******
+
+&spi0 { //logical layout for spi0
+    compatible = "nordic,nrf-spim";
+    status = "okay";
+    pinctrl-0 = <&spi0_default>;
+	pinctrl-1 = <&spi0_sleep>;
+    pinctrl-names = "default", "sleep";
+};
+
+&pinctrl {
+    spi0_default: spi0_default {//physical pin assignments for spi0
+        group1 {
+            psels = <NRF_PSEL(SPIM_SCK, 0, 15)>,
+                    <NRF_PSEL(SPIM_MOSI, 0, 16)>;
+        };
+    };
+
+	spi0_sleep: spi0_sleep { //disconnects pins to save power
+        group1 {
+            psels = <NRF_PSEL(SPIM_SCK, 0, 15)>,
+                    <NRF_PSEL(SPIM_MOSI, 0, 16)>;
+            low-power-enable;
+        };
+    };
+};
