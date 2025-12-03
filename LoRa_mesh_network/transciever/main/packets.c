@@ -5,10 +5,7 @@
 
 static const char *TAG = "packets";
 
-#define HEADER_LEN 6 //6 bytes
 #define MAX_MESSAGE_LEN 162 //bytes
-
-static uint32_t node_sequence_num = 0;
 
 int build_packet(build_packet_data_t packet_data, uint8_t* packet, uint8_t* packet_len) {
     packet_header_t header;
@@ -20,7 +17,8 @@ int build_packet(build_packet_data_t packet_data, uint8_t* packet, uint8_t* pack
 
     header.sender_id = packet_data.sender_id;
     header.reciever_id = packet_data.reciever_id;
-    header.seq_num = node_sequence_num;
+    header.seq_num = packet_data.seq_num;
+    header.is_ack  = packet_data.is_ack;
 
     uint8_t iv_cipher[message_len + 32]; //32 = 16 byte IV + worst case 16 bytes of padding
     uint8_t iv_cipher_len;
@@ -37,7 +35,6 @@ int build_packet(build_packet_data_t packet_data, uint8_t* packet, uint8_t* pack
     memcpy(packet, &header, HEADER_LEN);
     memcpy(packet+HEADER_LEN, iv_cipher, iv_cipher_len);
 
-    node_sequence_num++;
     ESP_LOGI(TAG, "Packet built");
 
     return 0;
@@ -58,3 +55,4 @@ int parse_packet(uint8_t* packet, uint16_t len, packet_header_t* header, uint8_t
 
     return 0;
 }
+

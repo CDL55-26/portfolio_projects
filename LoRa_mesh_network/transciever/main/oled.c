@@ -1,7 +1,10 @@
+#include <string.h>
+
 #include "esp_log.h"
 #include "esp_check.h"
 
-#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_vendor.h"
@@ -12,6 +15,7 @@
 #include "driver/i2c_master.h" 
 
 #include "oled.h"      
+#include "keypad.h"
 
 #define TAG "oled"
 
@@ -22,6 +26,7 @@
 #define OLED_ADDR           0x3C
 #define OLED_RST_GPIO       -1        
 
+extern SemaphoreHandle_t oled_mutex; 
 
 static esp_lcd_panel_handle_t panel;
 
@@ -120,3 +125,38 @@ void oled_draw_string(uint8_t* str) {
     }
 }
 
+void update_oled(const char* text) { //small helper to pass to keypad routine
+  oled_clear();
+  oled_draw_string((uint8_t*)text);
+}
+
+void oled_mutex_lock(void) {
+  if (xSemaphoreTake(oled_mutex, portMAX_DELAY) == pdTRUE) {
+    return;
+  }
+}
+
+void oled_mutex_unlock(void) {
+  xSemaphoreGive(oled_mutex);
+}
+
+void oled_print_message(const uint8_t* original_message, uint8_t sender_id) {
+  uint8_t id_message[] = "SID:X - ";
+  size_t id_message_len = strlen((char*)id_message);
+  size_t original_message_len = strlen((char*)original_message);
+  //space for null at end
+  size_t full_message_length = original_message_len + id_message_len + 1; 
+
+  uint8_t full_message[full_message_length];
+
+  strcpy((char*)full_message, (char*)id_message);
+  strcpy((char*)(full_message + id_message_len), (char*)original_message);
+
+  //replace X with node id
+  full_message[4] = sender_id + 48;// convert to ascii
+
+  update_message_cache((char*)full_message);
+
+  oled_clear();
+  oled_draw_string(full_message);
+}
