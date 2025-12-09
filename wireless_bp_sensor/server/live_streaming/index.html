@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reflectometer Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background: #0B0E14;
+      color: #E0E0E0;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: row;
+      overflow: hidden;
+    }
+
+    h2 {
+      margin: 10px 0;
+      color: white;
+      font-weight: 400;
+      text-align: center;
+    }
+
+    #left {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 20px;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    #right {
+      width: 420px;
+      min-width: 360px;
+      padding: 10px 20px;
+      border-left: 2px solid #222;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    .chart-container {
+      flex: 1;
+      min-height: 0;
+      padding-bottom: 35px;
+      box-sizing: border-box;
+    }
+
+    .chart-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+      background: #111;
+      border-radius: 12px;
+    }
+
+    select, button {
+      padding: 8px;
+      margin: 5px 0;
+      background: #1A1F27;
+      color: white;
+      border: 1px solid #333;
+      border-radius: 6px;
+    }
+
+    button:hover { background: #27303A; cursor: pointer; }
+
+    /* New Style for the Start/Stop Button */
+    #toggleBtn {
+        background-color: #F72585; /* Pink to match your chart */
+        font-weight: bold;
+        border: none;
+        margin-bottom: 15px;
+        padding: 12px;
+    }
+    #toggleBtn:hover {
+        background-color: #D01E6F;
+    }
+    #toggleBtn:active {
+        transform: translateY(2px);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="left">
+    <h2>Real-Time Reflectometer</h2>
+    
+    <button id="toggleBtn">Start / Stop Routine</button>
+
+    <div class="chart-container"><canvas id="chart"></canvas></div>
+  </div>
+
+  <div id="right">
+    <h2>Recorded Resonance Sweeps</h2>
+    <select id="eventList"></select>
+    <button onclick="loadSelectedEvent()">Load Event</button>
+    <div class="chart-container"><canvas id="historyChart"></canvas></div>
+  </div>
+
+  <script>
+    let sweepData = {};
+    let resonanceMHz = null;
+
+    const ctx = document.getElementById('chart').getContext('2d');
+
+    const chart = new Chart(ctx, {
+      type: 'scatter',
+      data: {
+        datasets: [
+          { label: "Sweep", data: [], borderColor: "#4CC9F0", pointRadius: 2, showLine: false },
+          { label: "Resonance", data: [], borderColor: "#F72585", pointRadius: 0, borderWidth: 2, showLine: true }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { type: "linear", min: 20, max: 80, title: { display: true, text: "Frequency (MHz)" }},
+          y: { min: 2350, max: 2600, title: { display: true, text: "ADC Value" }}
+        }
+      }
+    });
+
+    const ws = new WebSocket(`ws://${location.host}/stream`);
+
+    // --- ADDED BUTTON LOGIC HERE ---
+    document.getElementById('toggleBtn').onclick = () => {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send("TOGGLE");
+            console.log("Sent TOGGLE command");
+        } else {
+            alert("WebSocket not connected");
+        }
+    };
+    // -------------------------------
+
+    ws.onmessage = (event) => {
+      const msg = event.data.trim();
+
+      if (msg.startsWith("EVENT_NEW")) {
+        const parts = msg.split(",");
+        const newId = parts[1];
+
+        const list = document.getElementById("eventList");
+        const opt = document.createElement("option");
+        opt.value = newId;
+        opt.textContent = `Event ${newId} — just now`;
+        list.appendChild(opt);
+
+        list.value = newId;
+        loadSelectedEvent();
+        return;
+      }
+
+      if (msg.startsWith("RES")) {
+        const parts = msg.split(",");
+        resonanceMHz = parseFloat(parts[1]) / 1000.0;
+        chart.data.datasets[1].data = [
+          { x: resonanceMHz, y: 2000 },
+          { x: resonanceMHz, y: 2600 }
+        ];
+        chart.update();
+        return;
+      }
+
+      if (msg.startsWith("DATA")) {
+        const parts = msg.split(",");
+        const freq = parseFloat(parts[1]) / 1000.0;
+        const adc  = parseFloat(parts[2]);
+        sweepData[freq] = adc;
+        chart.data.datasets[0].data =
+          Object.entries(sweepData).map(([f,v]) => ({ x: parseFloat(f), y: v }));
+        chart.update();
+      }
+    };
+
+
+    /* HISTORICAL CHART */
+    const historyCtx = document.getElementById('historyChart').getContext('2d');
+
+    const historyChart = new Chart(historyCtx, {
+      type: 'line',
+      data: {
+        datasets: [
+          { label: "Resonance Decay", data: [], borderColor: "#80FFDB", pointRadius: 3, showLine: true }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        scales: {
+          x: { type: "linear", title: { display: true, text: "Index" }},
+          y: { title: { display: true, text: "Frequency (MHz)" }}
+        }
+      }
+    });
+
+    // Load event list on startup
+    fetch("/events")
+      .then(r => r.json())
+      .then(events => {
+        const list = document.getElementById("eventList");
+        list.innerHTML = "";
+        events.forEach(ev => {
+          const opt = document.createElement("option");
+          opt.value = ev.id;
+          opt.textContent = `Event ${ev.id} — ${ev.timestamp}`;
+          list.appendChild(opt);
+        });
+
+        if (events.length > 0) {
+          list.value = events[events.length - 1].id;
+          loadSelectedEvent();
+        }
+      });
+
+    function loadSelectedEvent() {
+      const id = document.getElementById("eventList").value;
+      if (!id) return;
+
+      fetch(`/events/${id}`)
+        .then(r => r.json())
+        .then(event => {
+          historyChart.data.datasets[0].data =
+            event.points.map(p => ({ x: p.index, y: p.frequency / 1000.0 }));
+          historyChart.update();
+        });
+    }
+  </script>
+
+</body>
+</html>

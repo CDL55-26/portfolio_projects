@@ -1,0 +1,22 @@
+{
+    "files.associations": {
+        "cstdlib": "c",
+        "device.h": "c",
+        "time_units.h": "c",
+        "gpio.h": "c",
+        "ad9850.h": "c",
+        "array": "c",
+        "span": "c",
+        "string": "c",
+        "string_view": "c",
+        "vector": "c",
+        "spi_master.h": "c",
+        "ringbuf.h": "c",
+        "event_groups.h": "c",
+        "esp_err.h": "c"
+    },
+    "nrf-connect.applications": [],
+    "idf.pythonInstallPath": "/Users/carterlevine/miniconda3/bin/python",
+    "idf.port": "/dev/tty.Bluetooth-Incoming-Port",
+    "idf.flashType": "JTAG"
+}
