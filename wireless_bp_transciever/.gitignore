@@ -1,9 +1,0 @@
-build*/
-*.ninja
-*.o
-*.a
-*.elf
-*.hex
-*.bin
-*.map
-*.log

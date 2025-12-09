@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "cstdlib": "c",
-        "device.h": "c"
-    },
-    "nrf-connect.applications": []
-}
